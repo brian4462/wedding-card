@@ -1,1 +1,179 @@
+----HTML----
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="test.js" defer></script>
+    <style>
+      div.score-area{
+        background:#ddd;
+      }
+      div.input-area{
+        background:#636363;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="score-area">
+      <span>Remain : </span><span id="remainCnt">2</span></br>
+      <span>시작버튼을 눌러 시작하세요! </span>
+      <input id="btnStart" type="button" value="시작"/>
+      <div class="history-area">
+      <span>Remain : </span><span id="remainCnt">2</span></br>
+      </div>
+    </div>
+    <div class="input-area" style="display:none;">
+    <span>4자리 숫자를 입력하세요(각자리마다 0~9의 숫자 입력가능)</span>
+    <input id="inputNum" type="text" />
+    <input id="btnCheck" type="button" value="Check"/>
+    </div>                    
+  </body>
+</html>
 
+
+
+---- JS ----
+const MAX_TRIAL_CNT = 10; /*최대시도횟수*/
+const TARGET_SIZE = 4; /*숫자크기*/
+const SCORE = [150,100,80,70,60,50,40,30,20,10];
+var TRIAL_CNT = 0;
+var TARGET_NUM;
+var B_CNT = 0;
+var S_CNT = 0;
+var FINISHED = false;
+
+
+var btnStart = document.getElementById("btnStart");
+btnStart.addEventListener('click',function(){
+    initGame();
+});
+
+var btnCheck = document.getElementById("btnCheck");
+btnCheck.addEventListener('click',function(){
+    var inputNum = document.getElementById("inputNum").value;
+    
+    if(validateUserInput(inputNum)){
+        checkInputNumber(inputNum);
+        printResult(inputNum);
+    }
+});
+
+function getTargetNumber(){
+    var targetNum = new Array(TARGET_SIZE);
+    for (var i=0; i<TARGET_SIZE; i++) {
+        targetNum[i] = parseInt(Math.random() * 10); //0~9 정수 생성
+   		/*중복제거*/
+   		for (var j=0; j<i; j++) {
+   			if (targetNum[j] == targetNum[i]) {
+   				i--;
+   			}
+   		}
+   	}
+    return targetNum;
+}
+
+function initGame(){
+    //
+    FINISHED = false;
+    //Remain Cnt 초기화
+    TRIAL_CNT = 0;
+    S_CNT = 0;
+    B_CNT = 0;
+    initRemainCnt()
+
+    //History 초기화
+    var historyArea = document.getElementsByClassName('history-area')[0];
+    historyArea.innerHTML = "";
+
+    //입력창 show
+    var inputArea = document.getElementsByClassName('input-area')[0];
+    inputArea.style.display = "block";
+    document.getElementById("inputNum").value="";
+
+    TARGET_NUM = getTargetNumber();
+}
+
+function validateUserInput(user_input){
+    const regex = /[0-9]{4}$/;
+    const inputLen = user_input.length;
+
+    if(FINISHED){
+        alert("종료된 게임입니다. 새로 시작을 눌러주세요.");
+        return false;
+    }
+    
+    if(TRIAL_CNT >= MAX_TRIAL_CNT){
+        alert("시도 횟수가 초과되었습니다.\r 더이상 진행이 불가능합니다.");
+        return false;
+    }
+
+    if(inputLen != TARGET_SIZE){
+        alert("입력값은 "+TARGET_SIZE+"자리 숫자여야 합니다.\r※각 자리마다 0~9 입력 가능");
+        return false;
+    }
+
+    if(!regex.test(user_input)){
+        alert("숫자가 아닌 값을 입력하셨습니다.\r※각 자리마다 0~9 입력 가능");
+        return false;
+    }
+
+    for(var a of user_input){
+        if(user_input.indexOf(a) != user_input.lastIndexOf(a)){
+            alert("입력값은 "+TARGET_SIZE+"자리 중복되지 않는 숫자여야 합니다.\r 입력하신 숫자 중 '"+a+"'가 중복됩니다.");
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function initCnt(){
+    B_CNT = 0;
+    S_CNT = 0;
+}
+
+function initRemainCnt(){
+    document.getElementById("remainCnt").innerHTML = MAX_TRIAL_CNT-TRIAL_CNT;
+}
+
+function checkInputNumber(user_input){
+    
+    initCnt();
+    var arrInput = new Array(TARGET_SIZE);
+    for (var i in user_input){
+        arrInput[i] = parseInt(user_input[i]);
+    }
+
+    for(var i=0; i<TARGET_SIZE; i++){
+        for(var j=0; j<TARGET_SIZE; j++){
+            if(arrInput[i]==TARGET_NUM[j]){
+                if(arrInput[i]==TARGET_NUM[i]){
+                    S_CNT++;
+                }
+                else{
+                    B_CNT++;
+                }
+            }
+        }
+    }
+
+    TRIAL_CNT++;
+    initRemainCnt();
+}
+
+function printResult(user_input){
+    var preText = "<span>======================</span></br><span> 시도횟수 : "+TRIAL_CNT+"</br>입력값 : " +user_input+ "</br>결과 : ";
+    var resultText = (S_CNT == 4) ? "정답입니다!" : (S_CNT+B_CNT) > 0 ? S_CNT+"S "+B_CNT+"B" : "OUT!!";
+    var lastText = "</span></br><span>======================</span></br>"
+
+    if(S_CNT == 4){
+        resultText += "</br> 당신의 점수는 " + SCORE[TRIAL_CNT-1] + "입니다."
+        FINISHED = true;
+    }
+    if(TRIAL_CNT == 10){
+        resultText += "</br> 아쉽네요.. 정답은 " + TARGET_NUM.join("") + "였습니다."
+        FINISHED = true;
+    }
+    
+    var innerhtml = preText + resultText + lastText;
+    document.getElementsByClassName('history-area')[0].innerHTML += innerhtml;
+}
